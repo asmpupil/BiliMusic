@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色无标题栏，和播放器界面一致；用系统 Material 主题即可，不必引入 AppCompat -->
+    <style name="Theme.BiliMusic" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0f1115</item>
+        <item name="android:statusBarColor">#0f1115</item>
+        <item name="android:navigationBarColor">#0f1115</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

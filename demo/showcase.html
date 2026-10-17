@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BiliMusic · 演示</title>
+<style>
+  /* ============ 基础 ============ */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#05070a}
+  body{
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;color:#e8ecf3;
+  }
+  #viewport{position:fixed;inset:0;overflow:hidden;background:#05070a}
+  #stage{
+    width:1600px;height:900px;position:absolute;left:50%;top:50%;
+    margin:-450px 0 0 -800px;              /* 布局尺寸的一半，居中基准 */
+    overflow:hidden;background:#0b0d12;
+    transform-origin:center center;
+    transform:scale(1);
+  }
+
+  /* ============ 背景 ============ */
+  .bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  .bg .grid{
+    position:absolute;inset:-30%;
+    background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(circle at 50% 42%,#000 0%,transparent 68%);
+    mask-image:radial-gradient(circle at 50% 42%,#000 0%,transparent 68%);
+  }
+  .blob{position:absolute;border-radius:50%;filter:blur(130px);opacity:.42;will-change:transform}
+  .b1{width:760px;height:760px;background:#2f7fe0;left:-14%;top:-22%;animation:f1 16s ease-in-out infinite}
+  .b2{width:680px;height:680px;background:#22d3a6;right:-12%;bottom:-18%;animation:f2 20s ease-in-out infinite}
+  .b3{width:520px;height:520px;background:#7b5cff;left:46%;top:56%;opacity:.22;animation:f1 24s ease-in-out infinite reverse}
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(70px,50px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-70px)}}
+  .vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,transparent 40%,rgba(0,0,0,.55) 100%)}
+
+  /* ============ 场景容器 ============ */
+  .scene{position:absolute;inset:0;opacity:0;transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+  .scene.on{opacity:1}
+  .scene.out{opacity:0;transform:scale(.985)}
+
+  /* ============ 场景 1：品牌 ============ */
+  .s-brand{display:grid;place-content:center;justify-items:center;gap:34px}
+  .mark{
+    width:132px;height:132px;border-radius:38px;
+    background:linear-gradient(135deg,#4ea1ff,#22d3a6);
+    display:grid;place-items:center;font-size:70px;color:#06202e;
+    box-shadow:0 30px 90px rgba(78,161,255,.42),inset 0 2px 0 rgba(255,255,255,.35);
+    opacity:0;transform:scale(.55) rotate(-8deg);
+    transition:opacity .8s ease,transform .9s cubic-bezier(.2,1.3,.4,1);
+  }
+  .mark.on{opacity:1;transform:scale(1) rotate(0)}
+  .halo{
+    position:absolute;width:520px;height:520px;border-radius:50%;
+    border:1px solid rgba(78,161,255,.28);opacity:0;transform:scale(.4);
+  }
+  .halo.on{animation:halo 1.6s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes halo{
+    0%{opacity:.9;transform:scale(.35)}
+    100%{opacity:0;transform:scale(1.6)}
+  }
+  .brand-title{
+    font-size:104px;font-weight:800;letter-spacing:-3px;line-height:1;
+    background:linear-gradient(180deg,#fff 20%,#8fb2d8 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transform:translateY(22px);
+    transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1);
+  }
+  .brand-title.on{opacity:1;transform:translateY(0)}
+  .tagline{
+    font-size:26px;color:#93a2b8;letter-spacing:6px;font-weight:400;
+    opacity:0;transform:translateY(14px);
+    transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1);
+  }
+  .tagline.on{opacity:1;transform:translateY(0)}
+  .brand-inner{display:grid;place-items:center;gap:34px;position:relative}
+
+  /* ============ 场景 2：播放器 ============ */
+  .s-app{display:grid;place-items:center}
+  .app{
+    width:1360px;height:792px;border-radius:22px;overflow:hidden;
+    background:rgba(16,19,26,.86);
+    border:1px solid rgba(255,255,255,.075);
+    box-shadow:0 50px 130px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    display:flex;flex-direction:column;
+    position:relative;
+    transform:translateY(26px) scale(.99);
+    transition:transform .8s cubic-bezier(.22,1,.36,1);
+  }
+  .s-app.on .app{transform:translateY(0) scale(1)}
+
+  /* 顶栏 */
+  .app-head{
+    display:flex;align-items:center;gap:20px;padding:16px 26px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    background:linear-gradient(180deg,rgba(30,35,46,.6),rgba(14,17,23,.2));
+    flex:0 0 auto;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+  .logo i{
+    display:grid;place-items:center;width:29px;height:29px;border-radius:9px;font-style:normal;
+    font-size:16px;background:linear-gradient(135deg,#4ea1ff,#22d3a6);color:#06202e;
+  }
+  .search{
+    flex:1;max-width:760px;height:44px;border-radius:22px;position:relative;
+    background:rgba(8,10,14,.85);border:1px solid rgba(255,255,255,.09);
+    display:flex;align-items:center;padding:0 18px;font-size:15px;
+  }
+  .search .ph{color:#5d6879}
+  .search.hide-ph .ph{display:none}
+  .search .typed{color:#e8ecf3}
+  .caret{
+    width:2px;height:19px;background:#4ea1ff;margin-left:2px;opacity:0;
+  }
+  .caret.blink{animation:blink 1s steps(1) infinite;opacity:1}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  .go{
+    height:44px;padding:0 26px;border-radius:22px;border:0;cursor:pointer;
+    background:linear-gradient(135deg,#4ea1ff,#2f7fe0);color:#fff;
+    font-size:15px;font-weight:600;font-family:inherit;
+    box-shadow:0 8px 26px rgba(78,161,255,.32);
+    transition:transform .15s ease,filter .15s ease;
+  }
+  .go.press{transform:scale(.94);filter:brightness(1.18)}
+
+  /* 主体 */
+  .app-body{
+    flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(0,1fr) 420px;
+    gap:16px;padding:16px 26px 10px;
+  }
+  .panel{
+    display:flex;flex-direction:column;min-height:0;
+    background:rgba(24,28,37,.72);border:1px solid rgba(255,255,255,.07);
+    border-radius:16px;overflow:hidden;
+  }
+  .panel-hd{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);
+    font-size:14px;font-weight:600;color:#8b95a7;letter-spacing:.5px;flex:0 0 auto;
+  }
+  .panel-hd em{font-style:normal;font-weight:400;color:#5d6879;font-size:13px}
+  .mini{
+    border:1px solid rgba(255,255,255,.1);background:transparent;color:#8b95a7;
+    border-radius:9px;padding:4px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;
+  }
+  .list{list-style:none;overflow:hidden;padding:8px;flex:1;min-height:0}
+  .item{
+    display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:11px;
+    opacity:0;transform:translateX(-14px);
+    transition:opacity .45s ease,transform .45s cubic-bezier(.22,1,.36,1),background .2s ease;
+  }
+  .item.on{opacity:1;transform:translateX(0)}
+  .item .idx{width:28px;text-align:center;color:#4c5867;font-variant-numeric:tabular-nums;font-size:14px;flex:0 0 auto}
+  .item .main{flex:1;min-width:0}
+  .item .it{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .im{font-size:12.5px;color:#8b95a7;margin-top:4px}
+  .item .dur{font-size:12.5px;color:#5d6879;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .item.hot{background:rgba(78,161,255,.14);box-shadow:inset 2px 0 0 #4ea1ff}
+  .item.hot .it{color:#8ec2ff}
+  .item.hot .idx{color:#4ea1ff}
+  .queue .item{padding:10px 14px}
+  .queue .item .it{font-size:13.5px}
+
+  /* 底部播放器 */
+  .player{
+    flex:0 0 auto;display:grid;align-items:center;
+    grid-template-columns:64px minmax(160px,1fr) auto minmax(260px,1.5fr) auto;
+    gap:22px;padding:15px 26px;
+    border-top:1px solid rgba(255,255,255,.07);
+    background:linear-gradient(180deg,rgba(26,31,41,.9),rgba(13,16,22,.95));
+    position:relative;
+    transform:translateY(100%);
+    transition:transform .7s cubic-bezier(.22,1,.36,1);
+  }
+  .player.on{transform:translateY(0)}
+
+  .cover{
+    width:64px;height:64px;border-radius:50%;flex:0 0 auto;position:relative;
+    background:conic-gradient(from 0deg,#2b3140,#1a1e28,#2b3140,#1a1e28,#2b3140);
+    box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.09);
+    display:grid;place-items:center;overflow:hidden;
+  }
+  .cover.spin{animation:spin 7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .cover .label{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#4ea1ff,#22d3a6);
+    display:grid;place-items:center;font-size:16px;color:#06202e;
+  }
+  .meta{min-width:0}
+  .now-t{font-size:15.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+  .now-s{font-size:12.5px;color:#8b95a7;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .ctrl{display:flex;align-items:center;gap:16px}
+  .cbtn{
+    display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.1);background:#1b202a;color:#e8ecf3;
+    cursor:pointer;transition:all .16s ease;
+  }
+  .cbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .cbtn.main{
+    width:54px;height:54px;border:0;background:linear-gradient(135deg,#4ea1ff,#2f7fe0);color:#fff;
+    box-shadow:0 8px 26px rgba(78,161,255,.4);
+  }
+  .cbtn.main svg{width:22px;height:22px;fill:currentColor;stroke:none}
+
+  .progress{display:flex;align-items:center;gap:14px;min-width:0}
+  .tm{font-size:12px;color:#7b8697;font-variant-numeric:tabular-nums;width:46px;text-align:center;flex:0 0 auto}
+  .bar{position:relative;flex:1;height:20px;display:flex;align-items:center;min-width:0}
+  .bar::before{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:#262c38}
+  .fill{
+    position:absolute;left:0;height:4px;border-radius:2px;width:0;
+    background:linear-gradient(90deg,#4ea1ff,#22d3a6);
+    transition:width .3s linear;
+  }
+  .knob{
+    position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;
+    transform:translateX(-50%);left:0;box-shadow:0 0 0 4px rgba(78,161,255,.25);
+    opacity:0;transition:opacity .3s ease,left .3s linear;
+  }
+  .knob.on{opacity:1}
+
+  .right{display:flex;align-items:center;gap:14px}
+  .eq{display:flex;align-items:flex-end;gap:3px;height:20px}
+  .eq i{
+    display:block;width:3px;height:5px;border-radius:2px;
+    background:linear-gradient(180deg,#22d3a6,#4ea1ff);
+    animation:eq .85s ease-in-out infinite;animation-play-state:paused;
+  }
+  .eq.on i{animation-play-state:running}
+  .eq i:nth-child(2){animation-delay:.14s}
+  .eq i:nth-child(3){animation-delay:.28s}
+  .eq i:nth-child(4){animation-delay:.42s}
+  @keyframes eq{0%,100%{height:5px}50%{height:20px}}
+  .vol{display:flex;align-items:center;gap:9px}
+  .vol .vbar{position:relative;width:96px;height:18px;display:flex;align-items:center}
+  .vol .vbar::before{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:#262c38}
+  .vol .vfill{position:absolute;left:0;height:4px;border-radius:2px;width:80%;background:linear-gradient(90deg,#22d3a6,#4ea1ff)}
+  .vol .vnum{font-size:12px;color:#7b8697;width:26px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* 涟漪 */
+  .ripple{
+    position:absolute;width:12px;height:12px;border-radius:50%;
+    border:2px solid rgba(78,161,255,.9);pointer-events:none;
+    transform:translate(-50%,-50%);opacity:0;
+  }
+  .ripple.on{animation:rip .55s ease-out forwards}
+  @keyframes rip{
+    0%{opacity:1;width:12px;height:12px}
+    100%{opacity:0;width:110px;height:110px}
+  }
+
+  /* ============ 场景 3：三端 ============ */
+  .s-platforms{display:grid;place-content:center;justify-items:center;gap:64px}
+  .p-title{
+    font-size:44px;font-weight:750;letter-spacing:-.5px;
+    background:linear-gradient(180deg,#fff,#9db8d6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transform:translateY(16px);
+    transition:all .7s cubic-bezier(.22,1,.36,1);
+  }
+  .p-title.on{opacity:1;transform:translateY(0)}
+  .cards{display:flex;gap:34px}
+  .card{
+    width:330px;padding:34px 30px;border-radius:22px;
+    background:rgba(22,26,34,.82);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 30px 70px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(34px) scale(.97);
+    transition:all .75s cubic-bezier(.22,1,.36,1);
+  }
+  .card.on{opacity:1;transform:translateY(0) scale(1)}
+  .card .ico{
+    width:56px;height:56px;border-radius:16px;display:grid;place-items:center;
+    margin-bottom:22px;
+    background:linear-gradient(135deg,rgba(78,161,255,.2),rgba(34,211,166,.14));
+    border:1px solid rgba(78,161,255,.3);color:#7fbcff;
+  }
+  .card .ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .card h3{font-size:21px;font-weight:700;color:#fff;margin-bottom:10px}
+  .card p{font-size:14px;line-height:1.7;color:#8b95a7}
+  .card .k{display:inline-block;margin-top:18px;font-size:13px;color:#22d3a6;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+  .p-note{
+    font-size:16px;color:#7b8697;letter-spacing:2px;
+    opacity:0;transition:opacity .7s ease;
+  }
+  .p-note.on{opacity:1}
+
+  /* ============ 场景 4：收尾 ============ */
+  .s-end{display:grid;place-content:center;justify-items:center;gap:30px}
+  .end-title{
+    font-size:92px;font-weight:800;letter-spacing:-3px;
+    background:linear-gradient(135deg,#4ea1ff,#22d3a6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transform:scale(.94);
+    transition:all .9s cubic-bezier(.22,1,.36,1);
+  }
+  .end-title.on{opacity:1;transform:scale(1)}
+  .end-sub{
+    font-size:24px;color:#93a2b8;letter-spacing:8px;
+    opacity:0;transform:translateY(12px);
+    transition:all .8s cubic-bezier(.22,1,.36,1) .15s;
+  }
+  .end-sub.on{opacity:1;transform:translateY(0)}
+  .end-line{
+    width:0;height:2px;border-radius:1px;margin-top:8px;
+    background:linear-gradient(90deg,transparent,#4ea1ff,#22d3a6,transparent);
+    transition:width 1s cubic-bezier(.22,1,.36,1) .4s;
+  }
+  .end-line.on{width:520px}
+
+  /* ============ 控件 ============ */
+  #hud{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    display:flex;gap:10px;z-index:99;
+    opacity:0;transition:opacity .3s ease;
+  }
+  #hud:hover,#hud.show{opacity:1}
+  #hud button{
+    border:1px solid rgba(255,255,255,.14);background:rgba(20,24,32,.9);
+    color:#c3cddb;border-radius:10px;padding:9px 18px;font-size:13px;
+    font-family:inherit;cursor:pointer;backdrop-filter:blur(8px);
+  }
+  #hud button:hover{background:rgba(40,48,62,.95);color:#fff}
+  body.clean #hud{display:none}
+
+  /* ---------- 录制模式 ----------
+     关掉一切 CSS 过渡/动画，页面状态完全由 __rec.seek(t) 逐个设置，
+     这样每一帧只由时间戳决定，渲染出来的视频不会丢帧、不会抖。 */
+  body.rec *, body.rec *::before, body.rec *::after{
+    transition:none !important;
+    animation:none !important;
+  }
+  body.rec #hud{display:none !important}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+
+    <!-- 背景 -->
+    <div class="bg">
+      <div class="grid"></div>
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <!-- 场景 1：品牌 -->
+    <section class="scene s-brand" id="s-brand">
+      <div class="brand-inner">
+        <div class="halo" id="halo"></div>
+        <div class="mark" id="mark">♪</div>
+      </div>
+      <h1 class="brand-title" id="brand-title">BiliMusic</h1>
+      <p class="tagline" id="tagline">B 站 · 纯 音 频 播 放 器</p>
+    </section>
+
+    <!-- 场景 2：播放器 -->
+    <section class="scene s-app" id="s-app">
+      <div class="app">
+        <header class="app-head">
+          <div class="logo"><i>♪</i>BiliMusic</div>
+          <div class="search" id="search">
+            <span class="ph">搜索歌曲 / 歌手 / 关键词，回车搜索</span>
+            <span class="typed" id="typed"></span>
+            <span class="caret" id="caret"></span>
+          </div>
+          <button class="go" id="go">搜索</button>
+        </header>
+
+        <main class="app-body">
+          <section class="panel">
+            <div class="panel-hd"><span>搜索结果</span><em id="count"></em></div>
+            <ul class="list" id="list"></ul>
+          </section>
+          <section class="panel queue">
+            <div class="panel-hd"><span>《叶惠美》专辑曲目</span><button class="mini">收起</button></div>
+            <ul class="list" id="qlist"></ul>
+          </section>
+        </main>
+
+        <footer class="player" id="player">
+          <div class="cover" id="cover"><div class="label">♪</div></div>
+
+          <div class="meta">
+            <div class="now-t" id="now-title">未在播放</div>
+            <div class="now-s" id="now-sub">搜索一首歌开始吧</div>
+          </div>
+
+          <div class="ctrl">
+            <button class="cbtn" id="prev"><svg viewBox="0 0 24 24"><path d="M7 6v12M20 6l-9 6 9 6z"/></svg></button>
+            <button class="cbtn main" id="toggle"><svg viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z"/></svg></button>
+            <button class="cbtn" id="next"><svg viewBox="0 0 24 24"><path d="M17 6v12M4 6l9 6-9 6z"/></svg></button>
+          </div>
+
+          <div class="progress">
+            <span class="tm" id="t-now">0:00</span>
+            <div class="bar"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+            <span class="tm">4:29</span>
+          </div>
+
+          <div class="right">
+            <span class="eq" id="eq"><i></i><i></i><i></i><i></i></span>
+            <span class="vol">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8b95a7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM16 8a5 5 0 010 8"/></svg>
+              <span class="vbar"><span class="vfill"></span></span>
+              <span class="vnum">80</span>
+            </span>
+          </div>
+        </footer>
+
+        <div class="ripple" id="ripple"></div>
+      </div>
+    </section>
+
+    <!-- 场景 3：三端 -->
+    <section class="scene s-platforms" id="s-platforms">
+      <h2 class="p-title" id="p-title">同一份脚本，三种外壳</h2>
+      <div class="cards">
+        <div class="card" id="card1">
+          <div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+          <h3>Windows</h3>
+          <p>Rust + 系统 WebView2，不打包浏览器内核。<br>双击即用，绿色免安装。</p>
+          <span class="k">620 KB</span>
+        </div>
+        <div class="card" id="card2">
+          <div class="ico"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+          <h3>Android</h3>
+          <p>复用系统 WebView，支持后台播放。<br>通知栏 / 锁屏 / 耳机线控全可控。</p>
+          <span class="k">0.86 MB</span>
+        </div>
+        <div class="card" id="card3">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg></div>
+          <h3>浏览器</h3>
+          <p>Tampermonkey 或 DevTools Snippet，<br>粘一段脚本就能用。</p>
+          <span class="k">58 KB</span>
+        </div>
+      </div>
+      <p class="p-note" id="p-note">搜 索 · 点 播 · 只 听 声 音</p>
+    </section>
+
+    <!-- 场景 4：收尾 -->
+    <section class="scene s-end" id="s-end">
+      <h2 class="end-title" id="end-title">BiliMusic</h2>
+      <div class="end-line" id="end-line"></div>
+      <p class="end-sub" id="end-sub">只 听 声 音</p>
+    </section>
+
+  </div>
+</div>
+
+<div id="hud">
+  <button id="btn-replay">重播 (R)</button>
+  <button id="btn-clean">隐藏控件 (H)</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage');
+
+  /* ---------- 舞台自适应 ---------- */
+  function fit() {
+    const k = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    // 居中靠 left/top:50% + 负 margin 完成（按 1600x900 的布局尺寸算），
+    // transform 只管缩放。混用 translate(-50%,-50%) 会因为百分比
+    // 按未缩放的 1600px 计算，导致舞台被推到视口外。
+    stage.style.transform = 'scale(' + k + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  /* ---------- 演示数据 ---------- */
+  const RESULTS = [
+    ['【Hi-Res 无损音质】｜《晴天》- 周杰伦', '周杰伦 · 音乐', '4:29'],
+    ['【4K 修复】千本樱 - 初音未来', 'まふまふ · 音乐', '3:51'],
+    ['River Flows in You｜钢琴治愈系', 'Yiruma · 音乐', '3:07'],
+    ['【纯音乐】卡农 Canon 百听不厌', '轻音乐馆 · 音乐', '5:12'],
+    ['【合集】久石让 30 首经典配乐', '音乐盒子 · 合集', '128:40'],
+    ['夜的钢琴曲五（石进）', '石进 · 音乐', '2:07'],
+    ['【学习专注】Lo-Fi 自习室 3 小时', 'StudyRoom · 音乐', '180:00'],
+  ];
+
+  const QUEUE = [
+    ['01. 以父之名', '5:42'],
+    ['02. 懦夫', '3:58'],
+    ['03. 晴天', '4:29'],
+    ['04. 三年二班', '4:23'],
+    ['05. 东风破', '5:13'],
+    ['06. 你听得到', '4:12'],
+    ['07. 同一种调调', '3:46'],
+  ];
+
+  /* ---------- 工具 ---------- */
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function el(tag, cls, html) {
+    const d = document.createElement(tag);
+    if (cls) d.className = cls;
+    if (html != null) d.innerHTML = html;
+    return d;
+  }
+
+  /* ---------- 预热：把静态内容建好 ---------- */
+  const listEl = $('list');
+  const qlistEl = $('qlist');
+
+  RESULTS.forEach((r, i) => {
+    const li = el('li', 'item');
+    li.innerHTML =
+      '<div class="idx">' + (i + 1) + '</div>' +
+      '<div class="main"><div class="it"></div><div class="im"></div></div>' +
+      '<div class="dur"></div>';
+    li.querySelector('.it').textContent = r[0];
+    li.querySelector('.im').textContent = r[1];
+    li.querySelector('.dur').textContent = r[2];
+    listEl.appendChild(li);
+  });
+
+  QUEUE.forEach((q) => {
+    const li = el('li', 'item');
+    li.innerHTML =
+      '<div class="main"><div class="it"></div></div>' +
+      '<div class="dur"></div>';
+    li.querySelector('.it').textContent = q[0];
+    li.querySelector('.dur').textContent = q[1];
+    qlistEl.appendChild(li);
+  });
+
+  const items = [...listEl.children];
+  const qitems = [...qlistEl.children];
+
+  /* ---------- 重置 ---------- */
+  function reset() {
+    const all = document.querySelectorAll('.on');
+    all.forEach((n) => n.classList.remove('on'));
+
+    // 场景淡出态
+    document.querySelectorAll('.scene').forEach((s) => {
+      s.classList.remove('on', 'out');
+    });
+
+    items.forEach((n) => n.classList.remove('on', 'hot'));
+    qitems.forEach((n) => n.classList.remove('on', 'hot'));
+
+    $('typed').textContent = '';
+    $('caret').classList.remove('blink');
+    $('search').classList.remove('hide-ph');
+    $('count').textContent = '';
+    $('go').classList.remove('press');
+
+    $('player').classList.remove('on');
+    $('cover').classList.remove('spin');
+    $('eq').classList.remove('on');
+    $('knob').classList.remove('on');
+    $('fill').style.width = '0';
+    $('knob').style.left = '0';
+    $('t-now').textContent = '0:00';
+    $('now-title').textContent = '未在播放';
+    $('now-sub').textContent = '搜索一首歌开始吧';
+    $('ripple').classList.remove('on');
+  }
+
+  /* ---------- 打字 ---------- */
+  const KEYWORD = '周杰伦 晴天';
+
+  async function typeKeyword(dead) {
+    $('search').classList.add('hide-ph');
+    $('caret').classList.add('blink');
+    const typed = $('typed');
+    for (let i = 0; i < KEYWORD.length; i++) {
+      if (dead()) return;
+      typed.textContent = KEYWORD.slice(0, i + 1);
+      await wait(85 + Math.random() * 70);
+    }
+  }
+
+  /* ---------- 进度条 ---------- */
+  let progressTimer = null;
+  function startProgress(dead) {
+    const total = 4 * 60 + 29;
+    let sec = 0;
+    const step = () => {
+      if (dead()) return;
+      sec += 1;
+      if (sec > total) sec = total;
+      $('t-now').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+      const p = (sec / total) * 100;
+      $('fill').style.width = p + '%';
+      $('knob').style.left = p + '%';
+      progressTimer = setTimeout(step, 400);
+    };
+    progressTimer = setTimeout(step, 400);
+  }
+
+  /* ---------- 主流程 ---------- */
+  let runId = 0;
+
+  async function play() {
+    const me = ++runId;
+    const dead = () => me !== runId;
+
+    reset();
+    await wait(80);
+
+    /* ===== 场景 1：品牌 ===== */
+    $('s-brand').classList.add('on');
+    await wait(320);
+    if (dead()) return;
+    $('mark').classList.add('on');
+    $('halo').classList.add('on');
+
+    await wait(560);
+    if (dead()) return;
+    $('brand-title').classList.add('on');
+
+    await wait(360);
+    if (dead()) return;
+    $('tagline').classList.add('on');
+
+    await wait(1700);
+    if (dead()) return;
+    $('s-brand').classList.add('out');
+
+    /* ===== 场景 2：播放器 ===== */
+    await wait(420);
+    if (dead()) return;
+    $('s-brand').classList.remove('on');
+    $('s-app').classList.add('on');
+
+    await wait(700);
+    if (dead()) return;
+    await typeKeyword(dead);
+    if (dead()) return;
+
+    await wait(220);
+    if (dead()) return;
+    $('go').classList.add('press');
+    await wait(180);
+    if (dead()) return;
+    $('go').classList.remove('press');
+
+    await wait(200);
+    if (dead()) return;
+    for (let i = 0; i < items.length; i++) {
+      if (dead()) return;
+      items[i].classList.add('on');
+      await wait(95);
+    }
+
+    await wait(260);
+    if (dead()) return;
+    $('count').textContent = '已加载 50 / 共 1000';
+
+    await wait(900);
+    if (dead()) return;
+
+    // 点击第一条：涟漪 + 高亮
+    const first = items[0];
+    const fr = first.getBoundingClientRect();
+    const ar = document.querySelector('.app').getBoundingClientRect();
+    const s = ar.width / 1360;                 // 舞台缩放后的实际比例
+    const rip = $('ripple');
+    rip.style.left = ((fr.left + fr.width / 2) - ar.left) / s + 'px';
+    rip.style.top = ((fr.top + fr.height / 2) - ar.top) / s + 'px';
+    rip.classList.remove('on');
+    void rip.offsetWidth;
+    rip.classList.add('on');
+
+    first.classList.add('hot');
+
+    await wait(340);
+    if (dead()) return;
+
+    // 播放器升起
+    $('player').classList.add('on');
+    $('cover').classList.add('spin');
+    $('eq').classList.add('on');
+    $('knob').classList.add('on');
+    $('now-title').textContent = '【Hi-Res 无损音质】｜《晴天》- 周杰伦';
+    $('now-sub').textContent = '周杰伦　·　1/7《叶惠美》';
+
+    // 队列逐条出现
+    for (let i = 0; i < qitems.length; i++) {
+      if (dead()) return;
+      qitems[i].classList.add('on');
+      await wait(70);
+    }
+    qitems[2].classList.add('hot');
+
+    startProgress(dead);
+
+    await wait(3400);
+    if (dead()) return;
+
+    /* ===== 场景 3：三端 ===== */
+    $('s-app').classList.add('out');
+    await wait(380);
+    if (dead()) return;
+    $('s-app').classList.remove('on');
+    $('s-platforms').classList.add('on');
+
+    await wait(420);
+    if (dead()) return;
+    $('p-title').classList.add('on');
+
+    await wait(340);
+    if (dead()) return;
+    $('card1').classList.add('on');
+
+    await wait(180);
+    if (dead()) return;
+    $('card2').classList.add('on');
+
+    await wait(180);
+    if (dead()) return;
+    $('card3').classList.add('on');
+
+    await wait(600);
+    if (dead()) return;
+    $('p-note').classList.add('on');
+
+    await wait(2100);
+    if (dead()) return;
+
+    /* ===== 场景 4：收尾 ===== */
+    $('s-platforms').classList.add('out');
+    await wait(400);
+    if (dead()) return;
+    $('s-platforms').classList.remove('on');
+    $('s-end').classList.add('on');
+
+    await wait(380);
+    if (dead()) return;
+    $('end-title').classList.add('on');
+
+    await wait(300);
+    if (dead()) return;
+    $('end-line').classList.add('on');
+    $('end-sub').classList.add('on');
+
+    // 停在这里，方便录制时掐停
+  }
+
+  /* ---------- 控件 ---------- */
+  function replay() {
+    if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
+    play();
+  }
+
+  $('btn-replay').addEventListener('click', replay);
+  $('btn-clean').addEventListener('click', () => document.body.classList.toggle('clean'));
+
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (k === 'r') replay();
+    if (k === 'h') document.body.classList.toggle('clean');
+    if (k === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // 鼠标移到屏幕底部时露出控件，方便录制时操作
+  let hudTimer = null;
+  document.addEventListener('mousemove', (e) => {
+    const hud = $('hud');
+    if (e.clientY > window.innerHeight - 120) {
+      hud.classList.add('show');
+      clearTimeout(hudTimer);
+      hudTimer = setTimeout(() => hud.classList.remove('show'), 1600);
+    }
+  });
+
+  /* ==========================================================
+   *  录制模式（确定性渲染）
+   *  record.py 会：① 打开 ?rec=1 ② 给 body 加 .rec 关掉所有 CSS 过渡
+   *               ③ 每帧调 __rec.seek(t)
+   *  所以这里不用 class 切换，全部直接算内联样式，结果与帧率无关。
+   * ========================================================== */
+  const REC = (function () {
+    const $ = (id) => document.getElementById(id);
+    const listItems = [...$('list').children];
+    const qItems = [...$('qlist').children];
+    const scBrand = $('s-brand');
+    const scApp = $('s-app');
+    const scPlat = $('s-platforms');
+    const scEnd = $('s-end');
+    const appEl = document.querySelector('.app');
+    const KEYWORD = '周杰伦 晴天';
+
+    // 时间轴（ms）。inAt = “完全显示”的时刻，淡入发生在它前面 dur 毫秒。
+    const T = {
+      brandIn: 600, mark: 350, title: 950, tagline: 1350, brandOut: 3200,
+      appIn: 3800, typeStart: 4300, typeDur: 1050,
+      resStart: 5700, resGap: 95, countAt: 6800,
+      hotAt: 7700, playerAt: 8100, queueStart: 8350, queueGap: 70, progAt: 8900,
+      appOut: 12100, platIn: 12700, platTitle: 13100,
+      cardStart: 13550, cardGap: 220, note: 14450,
+      platOut: 17200, endIn: 17800, endTitle: 18100, endLine: 18600, endSub: 19100,
+      duration: 22000,
+    };
+
+    const TOTAL_SEC = 4 * 60 + 29;
+    const c01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+    /** 从 start 起 dur 毫秒 0→1，之后保持 1 */
+    const rise = (t, start, dur) => easeOut(c01((t - start) / dur));
+    /** 淡入 → 保持 → 淡出 */
+    const fadeWin = (t, inAt, outAt, dur) => {
+      if (t < inAt) return rise(t, inAt - dur, dur);
+      if (t < outAt) return 1;
+      return 1 - rise(t, outAt, dur);
+    };
+
+    function seek(t) {
+      /* ================= 场景 1：品牌 ================= */
+      scBrand.style.opacity = String(fadeWin(t, T.brandIn, T.brandOut, 600));
+
+      const m = rise(t, T.mark, 700);
+      const mark = $('mark');
+      mark.style.opacity = String(m);
+      mark.style.transform = 'scale(' + (0.55 + 0.45 * m) + ') rotate(' + (-8 * (1 - m)) + 'deg)';
+
+      const hp = c01((t - T.mark) / 1500);
+      const halo = $('halo');
+      halo.style.opacity = String(t >= T.mark && hp < 1 ? 0.85 * (1 - hp) : 0);
+      halo.style.transform = 'scale(' + (0.45 + 1.35 * hp) + ')';
+
+      const bt = rise(t, T.title, 750);
+      const btEl = $('brand-title');
+      btEl.style.opacity = String(bt);
+      btEl.style.transform = 'translateY(' + (22 * (1 - bt)) + 'px)';
+
+      const tg = rise(t, T.tagline, 700);
+      const tgEl = $('tagline');
+      tgEl.style.opacity = String(tg);
+      tgEl.style.transform = 'translateY(' + (14 * (1 - tg)) + 'px)';
+
+      /* ================= 场景 2：播放器 ================= */
+      scApp.style.opacity = String(fadeWin(t, T.appIn, T.appOut, 600));
+
+      const aIn = rise(t, T.appIn - 600, 800);
+      appEl.style.transform =
+        'translateY(' + (26 * (1 - aIn)) + 'px) scale(' + (0.992 + 0.008 * aIn) + ')';
+
+      // 打字
+      const typedLen = t < T.typeStart ? 0
+        : Math.min(KEYWORD.length,
+            Math.floor((t - T.typeStart) / T.typeDur * KEYWORD.length) + 1);
+      $('typed').textContent = KEYWORD.slice(0, typedLen);
+      $('search').classList.toggle('hide-ph', typedLen > 0);
+
+      const caretOn = t >= T.typeStart && t < T.typeStart + T.typeDur + 300;
+      const caret = $('caret');
+      caret.style.opacity = caretOn ? (Math.floor(t / 500) % 2 ? '0' : '1') : '0';
+
+      // 结果逐条滑入
+      listItems.forEach((li, i) => {
+        const p = rise(t, T.resStart + i * T.resGap, 420);
+        li.style.opacity = String(p);
+        li.style.transform = 'translateX(' + (-14 * (1 - p)) + 'px)';
+      });
+
+      const cnt = $('count');
+      cnt.textContent = t >= T.countAt ? '已加载 50 / 共 1000' : '';
+      cnt.style.opacity = String(rise(t, T.countAt, 400));
+
+      // 点击涟漪
+      const rip = $('ripple');
+      const rp = (t - T.hotAt) / 560;
+      if (rp >= 0 && rp <= 1) {
+        const d = 12 + 100 * rp;
+        rip.style.opacity = String(1 - rp);
+        rip.style.width = d + 'px';
+        rip.style.height = d + 'px';
+      } else {
+        rip.style.opacity = '0';
+      }
+      listItems[0].classList.toggle('hot', t >= T.hotAt);
+
+      // 播放器升起
+      const pOn = rise(t, T.playerAt, 650);
+      $('player').style.transform = 'translateY(' + (100 * (1 - pOn)) + '%)';
+      $('knob').style.opacity = String(pOn);
+
+      // 封面旋转（不用 CSS 动画，直接按时间算角度）
+      $('cover').style.transform =
+        'rotate(' + (Math.max(0, t - T.playerAt) / 1000 * (360 / 7)) + 'deg)';
+
+      // 均衡器跳动
+      $('eq').querySelectorAll('i').forEach((b, i) => {
+        const ph = (t / 850) * Math.PI * 2 - i * 0.9;
+        b.style.height = (pOn > 0 ? 6 + 13 * (0.5 + 0.5 * Math.sin(ph)) : 5) + 'px';
+        b.style.opacity = String(pOn);
+      });
+
+      // 队列
+      qItems.forEach((li, i) => {
+        const p = rise(t, T.queueStart + i * T.queueGap, 400);
+        li.style.opacity = String(p);
+        li.style.transform = 'translateX(' + (-14 * (1 - p)) + 'px)';
+      });
+      qItems[2].classList.toggle('hot', t >= T.queueStart + qItems.length * T.queueGap);
+
+      // 进度（快 3.6 倍，不然视频里看不出在走）
+      if (t >= T.progAt) {
+        const s = Math.min((t - T.progAt) / 1000 * 3.6, TOTAL_SEC);
+        $('t-now').textContent =
+          Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+        const p = (s / TOTAL_SEC) * 100;
+        $('fill').style.width = p + '%';
+        $('knob').style.left = p + '%';
+      } else {
+        $('t-now').textContent = '0:00';
+        $('fill').style.width = '0%';
+        $('knob').style.left = '0%';
+      }
+
+      const started = t >= T.playerAt;
+      $('now-title').textContent = started
+        ? '【Hi-Res 无损音质】｜《晴天》- 周杰伦' : '未在播放';
+      $('now-sub').textContent = started
+        ? '周杰伦　·　1/7《叶惠美》' : '搜索一首歌开始吧';
+
+      /* ================= 场景 3：三端 ================= */
+      scPlat.style.opacity = String(fadeWin(t, T.platIn, T.platOut, 600));
+
+      const pt = rise(t, T.platTitle, 700);
+      const ptEl = $('p-title');
+      ptEl.style.opacity = String(pt);
+      ptEl.style.transform = 'translateY(' + (16 * (1 - pt)) + 'px)';
+
+      [1, 2, 3].forEach((n, i) => {
+        const c = rise(t, T.cardStart + i * T.cardGap, 750);
+        const el = $('card' + n);
+        el.style.opacity = String(c);
+        el.style.transform =
+          'translateY(' + (34 * (1 - c)) + 'px) scale(' + (0.97 + 0.03 * c) + ')';
+      });
+
+      $('p-note').style.opacity = String(rise(t, T.note, 700));
+
+      /* ================= 场景 4：收尾 ================= */
+      scEnd.style.opacity = String(fadeWin(t, T.endIn, 1e9, 600));
+
+      const et = rise(t, T.endTitle, 900);
+      const etEl = $('end-title');
+      etEl.style.opacity = String(et);
+      etEl.style.transform = 'scale(' + (0.94 + 0.06 * et) + ')';
+
+      $('end-line').style.width = (520 * rise(t, T.endLine, 1000)) + 'px';
+
+      const es = rise(t, T.endSub, 800);
+      const esEl = $('end-sub');
+      esEl.style.opacity = String(es);
+      esEl.style.transform = 'translateY(' + (12 * (1 - es)) + 'px)';
+    }
+
+    return {
+      duration: T.duration,
+      timeline: T,
+      seek,
+      /** 外部一次性准备好录制环境 */
+      prepare() {
+        document.body.classList.add('rec');
+        document.querySelectorAll('.scene').forEach((s) => s.classList.remove('on', 'out'));
+        seek(0);
+      },
+    };
+  })();
+
+  window.__rec = REC;
+
+  // 录制模式（?rec=1）下不自动播放，避免和逐帧渲染抢状态
+  if (!/[?&]rec=1/.test(location.search)) setTimeout(play, 400);
+})();
+</script>
+</body>
+</html>

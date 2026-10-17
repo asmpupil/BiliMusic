@@ -1,0 +1,20 @@
+[package]
+name = "bili-music"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tao = "0.37.1"
+wry = "0.57.0"
+
+# 编译期把图标写进 exe（GNU 工具链走 windres，MSVC 走 rc.exe）
+[build-dependencies]
+winres = "0.1"
+
+# 目标是「小而快」：优先体积、开 LTO、去掉调试符号
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,21 @@
+# 统一换行符，避免 Windows 上 clone 后满屏 diff
+* text=auto
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sh  text eol=lf
+*.kt   text eol=lf
+*.kts  text eol=lf
+*.js   text eol=lf
+*.rs   text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+
+*.png binary
+*.ico binary
+*.wav binary
+*.mp4 binary
+*.apk binary
+*.exe binary
+*.dll binary
